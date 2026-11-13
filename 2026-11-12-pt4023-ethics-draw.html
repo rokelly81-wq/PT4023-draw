@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PT4023 Ethics Practical – Card Draw</title>
+<style>
+:root{--ink:#1d2433;--muted:#5b6475;--bg:#f4f1ea;--paper:#fffdf8;--drug:#b0413e;--nam:#2f6f73;--model:#7a5c2e;--line:#d9d3c5}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,"Times New Roman",serif;background:var(--bg);color:var(--ink);line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 60px}
+header h1{font-size:2rem;margin:0 0 4px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);font-family:system-ui,sans-serif;font-size:.95rem}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:24px}
+.panel h2{margin:0 0 10px;font-size:1.15rem}
+.sans{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+label{display:block;font-weight:600;margin-bottom:6px}
+input[type=text]{font:inherit;font-size:1.4rem;letter-spacing:.3em;text-transform:uppercase;width:9em;padding:8px 12px;border:2px solid var(--line);border-radius:8px}
+button{font:600 1rem system-ui,sans-serif;padding:10px 18px;border-radius:8px;border:0;background:var(--ink);color:#fff;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--ink);border:2px solid var(--ink)}
+.err{color:var(--drug);margin-top:8px;min-height:1.2em}
+.decks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+@media(max-width:700px){.decks{grid-template-columns:1fr}}
+.card{perspective:900px;height:230px}
+.inner{position:relative;width:100%;height:100%;transition:transform .8s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+.card.flipped .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:18px;text-align:center}
+.back{color:#fff;font-family:system-ui,sans-serif}
+.back .deck{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;opacity:.85}
+.back .big{font-size:2.6rem;font-family:Georgia,serif;margin-top:6px}
+.back{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 10px,transparent 10px 20px)}
+.front{background:var(--paper);transform:rotateY(180deg);border:3px solid}
+.front .deck{font:600 .75rem system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase}
+.front .name{font-size:1.35rem;margin-top:12px}
+.front .tag{margin-top:10px;font:600 .75rem system-ui,sans-serif;padding:3px 8px;border-radius:20px;color:#fff;display:none}
+.drug .back{background-color:var(--drug)} .drug .front{border-color:var(--drug)} .drug .front .deck{color:var(--drug)}
+.nam .back{background-color:var(--nam)} .nam .front{border-color:var(--nam)} .nam .front .deck{color:var(--nam)}
+.model .back{background-color:var(--model)} .model .front{border-color:var(--model)} .model .front .deck{color:var(--model)}
+.swapped .tag{display:inline-block;background:var(--muted)}
+.code{font:700 1.5rem ui-monospace,Menlo,Consolas,monospace;background:var(--ink);color:#fff;padding:12px 16px;border-radius:8px;display:inline-block;letter-spacing:.05em;word-break:break-all}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.note{color:var(--muted);font-size:.92rem}
+ol.sans li{margin-bottom:6px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Preclinical experiments in endocrine pharmacology: Research ethics</h1>
+  <p>PT4023 · Mock ethics committee practical · Card draw</p>
+</header>
+
+<section class="panel sans" id="rules">
+  <h2>How this works</h2>
+  <ol class="sans">
+    <li>Enter the four-character code you were sent. It is yours alone, so don't share it.</li>
+    <li>Turn over your three cards: a <b>drug</b>, a <b>NAM</b> (new approach methodology) and an <b>animal model</b>. Your drug card decides your group.</li>
+    <li>Research your cards. You may <b>swap once</b>, on either the NAM or the animal model (never the drug). You can come back to swap later; your hand will not change.</li>
+    <li>Write down or screenshot your result code and bring it to the practical. If you swapped, be ready to explain why.</li>
+  </ol>
+  <p class="note">Take a screenshot of your hand as a backup.</p>
+</section>
+
+<section class="panel sans" id="login">
+  <label for="tok">Your code</label>
+  <div class="row"><input id="tok" type="text" maxlength="4" autocomplete="off" spellcheck="false"><button id="go">Draw my cards</button></div>
+  <div class="err" id="err"></div>
+</section>
+
+<section class="panel hidden" id="hand">
+  <h2>Your hand</h2>
+  <div class="decks">
+    <div class="card drug" id="c-drug"><div class="inner"><div class="face back"><div class="deck">Drug</div><div class="big">?</div></div><div class="face front"><div class="deck">Drug</div><div class="name"></div></div></div></div>
+    <div class="card nam" id="c-nam"><div class="inner"><div class="face back"><div class="deck">NAM</div><div class="big">?</div></div><div class="face front"><div class="deck">NAM</div><div class="name"></div><div class="tag">Swapped</div></div></div></div>
+    <div class="card model" id="c-model"><div class="inner"><div class="face back"><div class="deck">Animal model</div><div class="big">?</div></div><div class="face front"><div class="deck">Animal model</div><div class="name"></div><div class="tag">Swapped</div></div></div></div>
+  </div>
+
+  <div class="sans" id="swapbox" style="margin-top:22px">
+    <h2>Swap (optional, once only)</h2>
+    <p class="note">Put back one card that doesn't fit your drug. Be ready to explain why at the practical: the ethics committee can challenge it.</p>
+    <div class="row"><button class="ghost" id="swap-nam">Put back my NAM</button><button class="ghost" id="swap-model">Put back my animal model</button></div>
+  </div>
+
+  <div class="sans" style="margin-top:22px">
+    <h2>Your result code</h2>
+    <div class="code" id="code"></div>
+    <div class="row"><button id="copy">Copy code</button></div>
+    <p class="note">Bring this code to the practical on Thursday 19 November.</p>
+    <p class="note" id="copied"></p>
+  </div>
+</div>
+</section>
+</div>
+
+<script>
+
+const DATA = {"D": [["MET", "New compound \u2014 same class as metformin (biguanide)"], ["GLIC", "New compound \u2014 same class as gliclazide (sulfonylurea)"], ["SEMA", "New compound \u2014 same class as semaglutide (GLP-1 receptor agonist)"], ["EMPA", "New compound \u2014 same class as empagliflozin (SGLT2 inhibitor)"], ["PIO", "New compound \u2014 same class as pioglitazone (thiazolidinedione)"], ["SITA", "New compound \u2014 same class as sitagliptin (DPP-4 inhibitor)"]], "N": [["ORGANOID", "Human islet organoids"], ["SCBETA", "Stem-cell-derived beta cells"], ["ISLETCHIP", "Islet-on-a-chip"], ["PANCLIVCHIP", "Pancreas\u2013liver multi-organ chip"], ["MUSFAT", "Human skeletal muscle / adipocyte cultures"], ["KIDCHIP", "Kidney proximal tubule-on-a-chip"], ["PBPK", "PBPK modelling"], ["UVAPADOVA", "UVA/Padova diabetes simulator"], ["ZEBRAFISH", "Zebrafish larvae"]], "M": [["BBRAT", "BB rat"], ["NOD", "NOD mouse"], ["STZ", "Streptozotocin-induced diabetes"], ["AKITA", "Akita mouse"], ["DBDB", "db/db mouse"], ["OBOB", "ob/ob mouse"], ["ZDF", "Zucker diabetic fatty rat"], ["HFDSTZ", "High-fat diet + low-dose streptozotocin"], ["GK", "Goto-Kakizaki rat"]], "H": {"010b03e39fee40c0e96fd62658addf73e25d52eaeeea5b155aa1a6be719a08eb": "cd1eedb829", "069f0063ce230d4edd00aa3e1154423c4e96f3e3c6175ff38265b075d176a84f": "814632e833", "86d80de5ef928ffd2f152b8f79bf53e1036aa69a53595a9252ef643bfa68e2ee": "c65be00e3c", "61719be58264a83d355171ed4fc288b0e9c4a8963abd6357781d439e0bd5bb75": "0776e0cd88", "6dac0dd4fa127e62d02dc6fb12fd287a43682cb79898abb752aa1864aed69b36": "38d75a3353", "290709b152975b37f23074c53862336152ce21e75323ec7bd7c2d2776331bded": "9483c6b365", "50c2ae4873fce79342e83e2dee924a5fc4f76d7364b4d536e1a50b2c410d3a17": "4bb7725483", "d8187991b3e45278224cec891f51926c4f1128294ef1e5dee61b47d3a19f4d00": "4fef59d115", "69d39160fd8dc94f58b5817f9c6d96324a20f8ca0ac8d963e053c2d623280aa5": "bc414af20e", "6fea1bbcf5b02c35548ed174f3bd0e9059f8a4481eeb285cee124eece7f6a235": "d4ef872b7c", "6e9b9587c73a42104c64fff700182adf7ba4e2fca3f1651539a2d207a2d5694f": "db728667bb", "4aa922e349adae4ec1fd26f245fd3cd1bd33fdf4569183e335872570786ea5fe": "f28c76928e", "dd0b444fd336ece68dd42de2c523bee73d4fe6c2cef36ba380e8ea620dd74b25": "a41905f1aa", "ca26dc0652cb6fe2f1ae904c7a413c8a7234cd13bd2f8b6b6f1414a87f38e052": "35a6aab6a9", "752a410abb1bd70c7d76f917f71e5a8fea72f6a25b11bf29350481d32e0a1e6c": "b7d056849b", "e17d523fbb959180949ea785d542cfead6e89d3f2884456f0c5c202cd1e72cdc": "213b1a2b7d", "fba288463cee846445807eb9185ee39b08ef74d8b10b2a603730458ce525b579": "e91a0e1bc3", "80c273c45edefe2883649777ac7e3a9f6cf7e39c10d0494c428fdd23acd5e3d3": "78f16d2966", "fbb710937fbc96b0b11d6b1b331b3a5249cb36979bc344adafcf1d265d21c4d1": "75cc225486"}};
+const $ = id => document.getElementById(id);
+const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return new Uint8Array(b)}
+const hex=a=>Array.from(a,x=>x.toString(16).padStart(2,"0")).join("");
+let hand=null, state=null;
+
+async function unlock(tok){
+  tok=tok.trim().toUpperCase();
+  const k=hex(await sha("pt4023|"+tok));
+  const e=DATA.H[k]; if(!e) return null;
+  const pad=await sha("pad|"+tok);
+  const v=e.match(/../g).map((h,i)=>parseInt(h,16)^pad[i]);
+  return {tok,drug:v[0],nam:v[1],namSwap:v[2],model:v[3],modelSwap:v[4]};
+}
+function render(flipNow){
+  const nam = state.swap==="nam"?hand.namSwap:hand.nam;
+  const model = state.swap==="model"?hand.modelSwap:hand.model;
+  document.querySelector("#c-drug .name").textContent=DATA.D[hand.drug][1];
+  document.querySelector("#c-nam .name").textContent=DATA.N[nam][1];
+  document.querySelector("#c-model .name").textContent=DATA.M[model][1];
+  $("c-nam").classList.toggle("swapped",state.swap==="nam");
+  $("c-model").classList.toggle("swapped",state.swap==="model");
+  const code=[hand.tok,DATA.D[hand.drug][0],DATA.N[nam][0],DATA.M[model][0]].join("-")+(state.swap?"-SWAP":"");
+  $("code").textContent=code;
+  $("swap-nam").disabled=$("swap-model").disabled=!!state.swap;
+  const flip=()=>["c-drug","c-nam","c-model"].forEach((c,i)=>setTimeout(()=>$(c).classList.add("flipped"),flipNow?0:400+i*500));
+  flip();
+}
+async function start(tok){
+  const h=await unlock(tok);
+  if(!h){$("err").textContent="That code wasn't recognised. Check it and try again.";return}
+  hand=h; state=store.get("pt4023-"+h.tok)||{swap:null};
+  store.set("pt4023-last",h.tok); store.set("pt4023-"+h.tok,state);
+  $("login").classList.add("hidden"); $("hand").classList.remove("hidden");
+  render(false);
+}
+function doSwap(which){
+  const label=which==="nam"?"NAM":"animal model";
+  if(!confirm("Put back your "+label+"? You can only swap once and this cannot be undone.")) return;
+  state.swap=which; store.set("pt4023-"+hand.tok,state);
+  const c=$(which==="nam"?"c-nam":"c-model"); c.classList.remove("flipped");
+  setTimeout(()=>render(true),850);
+}
+$("go").onclick=()=>start($("tok").value);
+$("tok").addEventListener("keydown",e=>{if(e.key==="Enter")start($("tok").value)});
+$("swap-nam").onclick=()=>doSwap("nam");
+$("swap-model").onclick=()=>doSwap("model");
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("code").textContent);$("copied").textContent="Copied."}catch(e){$("copied").textContent="Select the code above and copy it manually."}};
+const last=store.get("pt4023-last"); if(last){$("tok").value=last; start(last);}
+</script>
+</body>
+</html>
